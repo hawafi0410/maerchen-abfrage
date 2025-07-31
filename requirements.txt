@@ -4,5 +4,4 @@ openai
 langchain
 langchain-community
 langchain-openai
-pinecone-client==2.2.4  # Downgrade für Kompatibilität mit LangChain
-# Wichtig: neue Pinecone-Version vermeiden!
+pinecone

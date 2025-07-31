@@ -28,25 +28,29 @@ class FrageInput(BaseModel):
 @app.post("/frage")
 async def frage_stellen(payload: FrageInput):
     frage = payload.frage
-    dokumente = index.describe_index_stats()["namespaces"].keys()
+    try:
+        dokumente = index.describe_index_stats()["namespaces"].keys()
+    except Exception as e:
+        return {"fehler": f"Index konnte nicht gelesen werden: {str(e)}"}
+
     antworten = {}
 
     for name in dokumente:
         print(f"🔍 Frage an: {name}")
-        vectorstore = LangchainPinecone(
-            index=index,
-            embedding=embeddings,
-            text_key="text",
-            namespace=name
-        )
-        retriever = vectorstore.as_retriever()
-        qa_chain = RetrievalQA.from_chain_type(
-            llm=ChatOpenAI(openai_api_key=OPENAI_API_KEY),
-            chain_type="stuff",
-            retriever=retriever,
-            return_source_documents=False
-        )
         try:
+            vectorstore = LangchainPinecone(
+                index=index,
+                embedding=embeddings,
+                text_key="text",
+                namespace=name
+            )
+            retriever = vectorstore.as_retriever()
+            qa_chain = RetrievalQA.from_chain_type(
+                llm=ChatOpenAI(openai_api_key=OPENAI_API_KEY),
+                chain_type="stuff",
+                retriever=retriever,
+                return_source_documents=False
+            )
             antwort = qa_chain.run(frage)
             if antwort and "keine Antwort" not in antwort.lower():
                 antworten[name] = antwort
