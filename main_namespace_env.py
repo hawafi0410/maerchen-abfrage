@@ -16,7 +16,7 @@ INDEX_NAME = os.getenv("INDEX_NAME")
 
 # 🔗 Pinecone & LangChain
 pc = Pinecone(api_key=PINECONE_API_KEY)
-index = pc.Index(INDEX_NAME)
+index = pc.index(INDEX_NAME)
 embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
 # 🚀 FastAPI
