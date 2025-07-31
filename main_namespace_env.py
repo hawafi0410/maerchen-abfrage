@@ -4,24 +4,22 @@ from langchain_community.vectorstores import Pinecone as LangchainPinecone
 from langchain_openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_community.chat_models import ChatOpenAI
-import pinecone  # wichtig: altes Interface für LangChain
-
+from pinecone import Pinecone
 from dotenv import load_dotenv
 import os
 
+# 🔐 Umgebungsvariablen laden
 load_dotenv()
-
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 INDEX_NAME = os.getenv("INDEX_NAME")
 
-# 🧠 Pinecone (altmodisch, aber kompatibel mit LangChain)
-pinecone.init(api_key=PINECONE_API_KEY)
-index = pinecone.Index(INDEX_NAME)
-
+# 🔗 Pinecone & LangChain
+pc = Pinecone(api_key=PINECONE_API_KEY)
+index = pc.Index(INDEX_NAME)
 embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
-# 📦 FastAPI App
+# 🚀 FastAPI
 app = FastAPI()
 
 class FrageInput(BaseModel):
