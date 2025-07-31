@@ -1,27 +1,23 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from langchain_community.vectorstores import Pinecone as LangchainPinecone
+from langchain_pinecone import PineconeVectorStore  # NEU: neue Klasse aus neuem Paket
 from langchain_openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
-from langchain_community.chat_models import ChatOpenAI
+from langchain.chat_models import ChatOpenAI
 from pinecone import Pinecone
 from dotenv import load_dotenv
 import os
 
-# 🔐 Umgebungsvariablen laden
 load_dotenv()
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 INDEX_NAME = os.getenv("INDEX_NAME")
 
-# 🧠 Neue Pinecone-Initialisierung
+# Pinecone initialisieren
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index(INDEX_NAME)
 
-# 🔤 Embeddings
-embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-
-# 🚀 FastAPI App
+# FastAPI App
 app = FastAPI()
 
 class FrageInput(BaseModel):
@@ -39,10 +35,9 @@ async def frage_stellen(payload: FrageInput):
 
     for name in dokumente:
         print(f"🔍 Frage an: {name}")
-        vectorstore = LangchainPinecone(
-            index=index,
-            embedding=embeddings,
-            text_key="text",
+        vectorstore = PineconeVectorStore.from_existing_index(  # NEU
+            index_name=INDEX_NAME,
+            embedding=OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY),
             namespace=name
         )
         retriever = vectorstore.as_retriever()
