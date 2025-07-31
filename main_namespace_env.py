@@ -4,7 +4,7 @@ from langchain_community.vectorstores import Pinecone as LangchainPinecone
 from langchain_openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_community.chat_models import ChatOpenAI
-import pinecone  # klassischer Import
+from pinecone import Pinecone
 from dotenv import load_dotenv
 import os
 
@@ -14,9 +14,9 @@ PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 INDEX_NAME = os.getenv("INDEX_NAME")
 
-# 🧠 Pinecone Initialisierung
-pinecone.init(api_key=PINECONE_API_KEY)
-index = pinecone.Index(INDEX_NAME)
+# 🧠 Neue Pinecone-Initialisierung
+pc = Pinecone(api_key=PINECONE_API_KEY)
+index = pc.Index(INDEX_NAME)
 
 # 🔤 Embeddings
 embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
@@ -30,8 +30,12 @@ class FrageInput(BaseModel):
 @app.post("/frage")
 async def frage_stellen(payload: FrageInput):
     frage = payload.frage
-    dokumente = index.describe_index_stats()["namespaces"].keys()
     antworten = {}
+
+    try:
+        dokumente = index.describe_index_stats()["namespaces"].keys()
+    except Exception as e:
+        return {"antworten": {"Fehler beim Zugriff auf Index": str(e)}}
 
     for name in dokumente:
         print(f"🔍 Frage an: {name}")
