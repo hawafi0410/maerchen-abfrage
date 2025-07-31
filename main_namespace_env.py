@@ -4,7 +4,7 @@ from langchain_community.vectorstores import Pinecone as LangchainPinecone
 from langchain_openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_community.chat_models import ChatOpenAI
-from pinecone import Pinecone
+import pinecone  # klassischer Import
 from dotenv import load_dotenv
 import os
 
@@ -14,12 +14,14 @@ PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 INDEX_NAME = os.getenv("INDEX_NAME")
 
-# 🔗 Pinecone & LangChain
-pc = Pinecone(api_key=PINECONE_API_KEY)
-index = pc.index(INDEX_NAME)
+# 🧠 Pinecone Initialisierung
+pinecone.init(api_key=PINECONE_API_KEY)
+index = pinecone.Index(INDEX_NAME)
+
+# 🔤 Embeddings
 embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
-# 🚀 FastAPI
+# 🚀 FastAPI App
 app = FastAPI()
 
 class FrageInput(BaseModel):
@@ -28,29 +30,25 @@ class FrageInput(BaseModel):
 @app.post("/frage")
 async def frage_stellen(payload: FrageInput):
     frage = payload.frage
-    try:
-        dokumente = index.describe_index_stats()["namespaces"].keys()
-    except Exception as e:
-        return {"fehler": f"Index konnte nicht gelesen werden: {str(e)}"}
-
+    dokumente = index.describe_index_stats()["namespaces"].keys()
     antworten = {}
 
     for name in dokumente:
         print(f"🔍 Frage an: {name}")
+        vectorstore = LangchainPinecone(
+            index=index,
+            embedding=embeddings,
+            text_key="text",
+            namespace=name
+        )
+        retriever = vectorstore.as_retriever()
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=ChatOpenAI(openai_api_key=OPENAI_API_KEY),
+            chain_type="stuff",
+            retriever=retriever,
+            return_source_documents=False
+        )
         try:
-            vectorstore = LangchainPinecone(
-                index=index,
-                embedding=embeddings,
-                text_key="text",
-                namespace=name
-            )
-            retriever = vectorstore.as_retriever()
-            qa_chain = RetrievalQA.from_chain_type(
-                llm=ChatOpenAI(openai_api_key=OPENAI_API_KEY),
-                chain_type="stuff",
-                retriever=retriever,
-                return_source_documents=False
-            )
             antwort = qa_chain.run(frage)
             if antwort and "keine Antwort" not in antwort.lower():
                 antworten[name] = antwort
