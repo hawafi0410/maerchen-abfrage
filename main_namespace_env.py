@@ -5,21 +5,20 @@ from langchain_openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_community.chat_models import ChatOpenAI
 from pinecone import Pinecone
-
-# 🔐 API-KEYs
 from dotenv import load_dotenv
 import os
 
-load_dotenv()  # lädt die .env-Datei
+# 🔐 .env laden
+load_dotenv()
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 INDEX_NAME = os.getenv("INDEX_NAME")
+PINECONE_ENV = os.getenv("PINECONE_ENV")  # wichtig für neue SDK
 
-
-# 🧠 Initialisierung
-pc = Pinecone(api_key=PINECONE_API_KEY)
-pinecone_index = pc.Index(INDEX_NAME)
+# 🧠 Initialisierung Pinecone und Embeddings
+pc = Pinecone(api_key=PINECONE_API_KEY, environment=PINECONE_ENV)
+index = pc.Index(INDEX_NAME)
 embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
 # 📦 FastAPI App
@@ -31,13 +30,13 @@ class FrageInput(BaseModel):
 @app.post("/frage")
 async def frage_stellen(payload: FrageInput):
     frage = payload.frage
-    dokumente = pinecone_index.describe_index_stats()["namespaces"].keys()
+    dokumente = index.describe_index_stats()["namespaces"].keys()
     antworten = {}
 
     for name in dokumente:
         print(f"🔍 Frage an: {name}")
         vectorstore = LangchainPinecone(
-            index=pinecone_index,
+            index=index,
             embedding=embeddings,
             text_key="text",
             namespace=name
