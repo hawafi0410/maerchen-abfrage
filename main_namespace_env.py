@@ -8,7 +8,7 @@ from pinecone import Pinecone
 from dotenv import load_dotenv
 import os
 
-# 🔐 .env laden
+# 🔐 .env ladenx
 load_dotenv()
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
